@@ -7,6 +7,9 @@
 	(5) 댓글삭제
  */
 
+// (0) 현재 로그인한 사용자 아이디
+let principalId = $("#principalId").val();
+
 // (1) 스토리 로드하기
 
 let page = 0;
@@ -14,20 +17,20 @@ function storyLoad() {
 	$.ajax({
 		url: `/api/image?page=${page}`,
 		dataType: "json"
-	}).done(res=>{
+	}).done(res => {
 		console.log(res);
-		res.data.content.forEach((image)=>{
+		res.data.content.forEach((image) => {
 			let storyItem = getStoryItem(image);
 			$("#storyList").append(storyItem);
 		})
-	}).fail(error=>{
+	}).fail(error => {
 		console.log("오류", error);
 	});
 }
 
 storyLoad();
 
-function getStoryItem(image){
+function getStoryItem(image) {
 	let item = `<div class="story-list__item">
 	<div class="sl__item__header">
 		<div>
@@ -45,14 +48,14 @@ function getStoryItem(image){
 		<div class="sl__item__contents__icon">
 
 			<button>`;
-				
-				if(image.likeState){
-					item += `<i class="fas fa-heart active" id="storyLikeIcon-${image.id}" onclick="toggleLike(${image.id})"></i>`;
-				}else{
-					item += `<i class="far fa-heart" id="storyLikeIcon-${image.id}" onclick="toggleLike(${image.id})"></i>`;
-				}
-				
-				item += `
+
+	if (image.likeState) {
+		item += `<i class="fas fa-heart active" id="storyLikeIcon-${image.id}" onclick="toggleLike(${image.id})"></i>`;
+	} else {
+		item += `<i class="far fa-heart" id="storyLikeIcon-${image.id}" onclick="toggleLike(${image.id})"></i>`;
+	}
+
+	item += `
 			</button>
 		</div>
 
@@ -62,24 +65,30 @@ function getStoryItem(image){
 			<p>${image.caption}</p>
 		</div>
 
-		<div id="storyCommentList-1">
+		<div id="storyCommentList-${image.id}">`;
 
-			<div class="sl__item__contents__comment" id="storyCommentItem-1"">
+	image.comments.forEach((comment) => {
+		item += `	<div class="sl__item__contents__comment" id="storyCommentItem-${comment.id}">
 				<p>
-					<b>Lovely :</b> 부럽습니다.
-				</p>
+					<b>${comment.user.username} :</b> ${comment.content}
+				</p>`;
 
-				<button>
-					<i class="fas fa-times"></i>
-				</button>
+		if (principalId == comment.user.id) {
+			item += `	<button onclick="deleteComment(${comment.id})">
+								<i class="fas fa-times"></i>
+							</button>`;
+		}
 
-			</div>
+		item += `
+			</div>`;
+	});
 
+	item += `
 		</div>
 
 		<div class="sl__item__input">
-			<input type="text" placeholder="댓글 달기..." id="storyCommentInput-1" />
-			<button type="button" onClick="addComment()">게시</button>
+			<input type="text" placeholder="댓글 달기..." id="storyCommentInput-${image.id}" />
+			<button type="button" onClick="addComment(${image.id})">게시</button>
 		</div>
 
 	</div>
@@ -92,14 +101,14 @@ function getStoryItem(image){
 
 // (2) 스토리 스크롤 페이징하기
 $(window).scroll(() => {
-	console.log("윈도우 scrollTop",$(window).scrollTop());
-	console.log("문서의 높이",$(document).height());
-	console.log("윈도우 높이",$(window).height());
-	
+	console.log("윈도우 scrollTop", $(window).scrollTop());
+	console.log("문서의 높이", $(document).height());
+	console.log("윈도우 높이", $(window).height());
+
 	let checkNum = $(window).scrollTop() - ($(document).height() - $(window).height());
 	console.log(checkNum);
-	
-	if(checkNum < 1 && checkNum > -1){
+
+	if (checkNum < 1 && checkNum > -1) {
 		page++;
 		storyLoad();
 	}
@@ -109,40 +118,40 @@ $(window).scroll(() => {
 // (3) 좋아요, 안좋아요
 function toggleLike(imageId) {
 	let likeIcon = $(`#storyLikeIcon-${imageId}`);
-	
-	
+
+
 	if (likeIcon.hasClass("far")) { // 좋아요 하겠다.
-		
+
 		$.ajax({
 			type: "POST",
 			url: `/api/image/${imageId}/likes`,
 			dataType: "json"
-		}).done(res=>{
-			
+		}).done(res => {
+
 			let likeCountStr = $(`#storyLikeCount-${imageId}`).text();
 			let likeCount = Number(likeCountStr) + 1;
 			console.log("좋아요 카운트", likeCount);
 			$(`#storyLikeCount-${imageId}`).text(likeCount);
-			
+
 			likeIcon.addClass("fas");
-		    likeIcon.addClass("active");
-		    likeIcon.removeClass("far");
-		}).fail(error=>{
+			likeIcon.addClass("active");
+			likeIcon.removeClass("far");
+		}).fail(error => {
 			console.log("오류", error);
 		});
 	} else { // 좋아요 취소 하겠다.
-	
+
 		$.ajax({
 			type: "delete",
 			url: `/api/image/${imageId}/likes`,
 			dataType: "json"
 		}).done(res => {
-			
+
 			let likeCountStr = $(`#storyLikeCount-${imageId}`).text();
 			let likeCount = Number(likeCountStr) - 1;
 			console.log("좋아요 카운트", likeCount);
 			$(`#storyLikeCount-${imageId}`).text(likeCount);
-			
+
 			likeIcon.removeClass("fas");
 			likeIcon.removeClass("active");
 			likeIcon.addClass("far");
@@ -154,35 +163,64 @@ function toggleLike(imageId) {
 }
 
 // (4) 댓글쓰기
-function addComment() {
+function addComment(imageId) {
 
-	let commentInput = $("#storyCommentInput-1");
-	let commentList = $("#storyCommentList-1");
+	let commentInput = $(`#storyCommentInput-${imageId}`);
+	let commentList = $(`#storyCommentList-${imageId}`);
 
 	let data = {
+		imageId: imageId,
 		content: commentInput.val()
 	}
+
 
 	if (data.content === "") {
 		alert("댓글을 작성해주세요!");
 		return;
 	}
+	$.ajax({
+		type: "POST",
+		url: "/api/comment",
+		data: JSON.stringify(data),
+		contentType: "application/json; charset=utf-8",
+		dataType: "json"
+	}).done(res => {
+		//console.log("성공", res);
 
-	let content = `
-			  <div class="sl__item__contents__comment" id="storyCommentItem-2""> 
+		let comment = res.data;
+
+		let content = `
+			  <div class="sl__item__contents__comment" id="storyCommentItem-${comment.id}"> 
 			    <p>
-			      <b>GilDong :</b>
-			      댓글 샘플입니다.
+			      <b>${comment.user.username} :</b>
+			     	${comment.content}
 			    </p>
-			    <button><i class="fas fa-times"></i></button>
+			    <button onclick="deleteComment(${comment.id})"><i class="fas fa-times"></i></button>
 			  </div>
 	`;
-	commentList.prepend(content);
-	commentInput.val("");
+		commentList.prepend(content);
+	}).fail(error => {
+		console.log("오류", error.responseJSON.data.content);
+		alert(error.responseJSON.data.content);
+	});
+
+
+	commentInput.val("");  // 인풋 필드를 깨끗하게 비워준다.
 }
 
 // (5) 댓글 삭제
-function deleteComment() {
+function deleteComment(commentId) {
+	
+	$.ajax({
+		type: "delete",
+		url: `/api/comment/${commentId}`,
+		dataType: "json"
+	}).done(res=>{
+		console.log("성공",res);
+		$(`#storyCommentItem-${commentId}`).remove();
+	}).fail(error=>{
+		console.log("오류",error);
+	});
 
 }
 
