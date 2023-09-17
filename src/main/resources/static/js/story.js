@@ -174,7 +174,7 @@ function addComment(imageId) {
 	}
 
 
-	if (data.content === "") {
+   if (data.content === "") {
 		alert("댓글을 작성해주세요!");
 		return;
 	}

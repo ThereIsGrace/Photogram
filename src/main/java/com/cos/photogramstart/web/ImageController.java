@@ -44,6 +44,8 @@ public class ImageController {
 		return "/image/upload";
 	}
 	
+	
+	// 깍둑이
 	@PostMapping("/image")
 	public String imageUpload(@Valid ImageUploadDto imageUploadDto, @AuthenticationPrincipal PrincipalDetails principalDetails) {
 		

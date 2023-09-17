@@ -63,4 +63,13 @@ public class User {
 	public void createDate() {
 		this.createDate = LocalDateTime.now();
 	}
+
+	@Override
+	public String toString() {
+		return "User [id=" + id + ", username=" + username + ", password=" + password + ", name=" + name + ", website="
+				+ website + ", bio=" + bio + ", phone=" + phone + ", email=" + email + ", gender=" + gender
+				+ ", profileImageUrl=" + profileImageUrl + ", role=" + role + ", createDate=" + createDate + "]";
+	}
+	
+	
 }
